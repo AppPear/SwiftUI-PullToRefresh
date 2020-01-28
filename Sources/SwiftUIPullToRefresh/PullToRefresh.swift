@@ -130,12 +130,13 @@ struct RefreshView: View {
     var body: some View {
         HStack() {
             VStack(alignment: .center){
+                if data.showText == "done" {
+                                   Image(systemName: "checkmark.circle")
+                                       .foregroundColor(Color.green)
+                               }
+                
                 if (!data.showRefreshView) {
                     Spinner(percentage: self.$data.pullStatus)
-                }
-                else if data.showText == "done" {
-                    Image(systemName: "checkmark.circle")
-                        .foregroundColor(Color.green)
                 }
                 else {
                     ActivityIndicator(isAnimating: .constant(true), style: .large)
