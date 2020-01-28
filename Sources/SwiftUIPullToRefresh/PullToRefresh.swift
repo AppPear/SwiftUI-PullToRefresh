@@ -128,9 +128,10 @@ struct RefreshView: View {
 struct PullToRefreshView: View {
     @Binding var showRefreshView: Bool
     @Binding var pullStatus: CGFloat
+    @Binding var showDone: Bool
     var body: some View {
         GeometryReader{ geometry in
-            RefreshView(isRefreshing: self.$showRefreshView, status: self.$pullStatus, showDone: <#Binding<Bool>#>)
+            RefreshView(isRefreshing: self.$showRefreshView, status: self.$pullStatus, showDone: $showDone)
                 .opacity(Double((geometry.frame(in: CoordinateSpace.global).origin.y - 106) / 80)).preference(key: RefreshableKeyTypes.PrefKey.self, value: [RefreshableKeyTypes.PrefData(bounds: geometry.frame(in: CoordinateSpace.global))])
                 .offset(y: -70)
         }
