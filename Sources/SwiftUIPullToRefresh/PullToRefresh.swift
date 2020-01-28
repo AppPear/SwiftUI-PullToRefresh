@@ -8,6 +8,8 @@
 
 import SwiftUI
 
+
+@available(iOS 13.0, *)
 public struct RefreshableNavigationView<Content: View>: View {
     let content: () -> Content
     let action: () -> Void
@@ -27,13 +29,21 @@ public struct RefreshableNavigationView<Content: View>: View {
                 self.content()
             }.navigationBarTitle(title)
         }
-        .offset(x: 0, y: self.showRefreshView ? 34 : 0)
-        .onAppear{
-            UITableView.appearance().separatorColor = .clear
+    }
+}
+
+@available(iOS 13.0, *)
+struct FillAll: View {
+    let color: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            self.color.frame(width: proxy.size.width * 1.3).fixedSize()
         }
     }
 }
 
+@available(iOS 13.0, *)
 public struct RefreshableList<Content: View>: View {
     @Binding var showRefreshView: Bool
     @Binding var pullStatus: CGFloat
@@ -44,22 +54,27 @@ public struct RefreshableList<Content: View>: View {
         self._pullStatus = pullStatus
         self.action = action
         self.content = content
+        UITableViewHeaderFooterView.appearance().tintColor = UIColor.clear
     }
     
     public var body: some View {
+        
         List{
-            PullToRefreshView(showRefreshView: $showRefreshView, pullStatus: $pullStatus)
-            content()
+            Section(header: PullToRefreshView(showRefreshView: $showRefreshView, pullStatus: $pullStatus))
+            {
+             content()
+            }
         }
+        .offset(y: -40)
         .onPreferenceChange(RefreshableKeyTypes.PrefKey.self) { values in
             guard let bounds = values.first?.bounds else { return }
             self.pullStatus = CGFloat((bounds.origin.y - 106) / 80)
             self.refresh(offset: bounds.origin.y)
-        }.offset(x: 0, y: -40)
+        }
     }
     
     func refresh(offset: CGFloat) {
-        if(offset > 185 && self.showRefreshView == false) {
+        if(offset > 185 + 40 && self.showRefreshView == false) {
             self.showRefreshView = true
             DispatchQueue.main.async {
                 self.action()
@@ -72,6 +87,7 @@ public struct RefreshableList<Content: View>: View {
     }
 }
 
+@available(iOS 13.0, *)
 struct Spinner: View {
     @Binding var percentage: CGFloat
     var body: some View {
@@ -89,12 +105,12 @@ struct Spinner: View {
     }
 }
 
+@available(iOS 13.0, *)
 struct RefreshView: View {
     @Binding var isRefreshing:Bool
     @Binding var status: CGFloat
     var body: some View {
         HStack{
-            Spacer()
             VStack(alignment: .center){
                 if (!isRefreshing) {
                     Spinner(percentage: $status)
@@ -103,11 +119,11 @@ struct RefreshView: View {
                 }
                 Text(isRefreshing ? "Loading" : "Pull to refresh").font(.caption)
             }
-            Spacer()
         }
     }
 }
 
+@available(iOS 13.0, *)
 struct PullToRefreshView: View {
     @Binding var showRefreshView: Bool
     @Binding var pullStatus: CGFloat
@@ -115,11 +131,13 @@ struct PullToRefreshView: View {
         GeometryReader{ geometry in
             RefreshView(isRefreshing: self.$showRefreshView, status: self.$pullStatus)
                 .opacity(Double((geometry.frame(in: CoordinateSpace.global).origin.y - 106) / 80)).preference(key: RefreshableKeyTypes.PrefKey.self, value: [RefreshableKeyTypes.PrefData(bounds: geometry.frame(in: CoordinateSpace.global))])
-                .offset(x: 0, y: -90)
+                .offset(y: -70)
         }
+        .offset(y: -20)
     }
 }
 
+@available(iOS 13.0, *)
 struct ActivityIndicator: UIViewRepresentable {
 
     @Binding var isAnimating: Bool
@@ -134,6 +152,7 @@ struct ActivityIndicator: UIViewRepresentable {
     }
 }
 
+@available(iOS 13.0, *)
 struct RefreshableKeyTypes {
     
     struct PrefData: Equatable {
@@ -151,6 +170,7 @@ struct RefreshableKeyTypes {
     }
 }
 
+@available(iOS 13.0, *)
 struct Spinner_Previews: PreviewProvider {
     static var previews: some View {
         Spinner(percentage: .constant(1))
