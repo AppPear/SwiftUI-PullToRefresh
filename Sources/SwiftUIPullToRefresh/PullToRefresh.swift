@@ -8,13 +8,46 @@
 
 import SwiftUI
 
+class RefreshData: ObservableObject {
+    @Published var showText: String
+    @Published var showRefreshView: Bool {
+        didSet {
+            self.showText = "Loading"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                if self.showRefreshView {
+                    self.showRefreshView = false
+                    self.showText = "Done"
+                }
+            }
+        }
+    }
+    @Published var pullStatus: CGFloat
+    @Published var showDone: Bool {
+        didSet {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                if self.showDone {
+                    self.showDone = false
+                    self.showText = "Pull to refresh"
+                }
+            }
+        }
+    }
+    
+    
+    init() {
+        self.showRefreshView = false
+        self.pullStatus = 0
+        self.showDone = false
+        self.showText = "Pull to refresh"
+    }
+}
+
 
 @available(iOS 13.0, *)
 public struct RefreshableNavigationView<Content: View>: View {
     let content: () -> Content
     let action: () -> Void
-    @State public var showRefreshView: Bool = false
-    @State public var pullStatus: CGFloat = 0
+    @ObservedObject var data = RefreshData()
     private var title: String
 
     public init(title:String, action: @escaping () -> Void ,@ViewBuilder content: @escaping () -> Content) {
@@ -25,7 +58,7 @@ public struct RefreshableNavigationView<Content: View>: View {
     
     public var body: some View {
         NavigationView{
-            RefreshableList(showRefreshView: $showRefreshView, pullStatus: $pullStatus, action: self.action) {
+            RefreshableList(data: data, action: self.action) {
                 self.content()
             }.navigationBarTitle(title)
         }
@@ -35,14 +68,11 @@ public struct RefreshableNavigationView<Content: View>: View {
 
 @available(iOS 13.0, *)
 public struct RefreshableList<Content: View>: View {
-    @Binding var showRefreshView: Bool
-    @Binding var pullStatus: CGFloat
-    @State var showDone: Bool = false
+    @ObservedObject var data: RefreshData
     let action: () -> Void
     let content: () -> Content
-    init(showRefreshView: Binding<Bool>, pullStatus: Binding<CGFloat>, action: @escaping () -> Void, @ViewBuilder content: @escaping () -> Content) {
-        self._showRefreshView = showRefreshView
-        self._pullStatus = pullStatus
+    init(data: RefreshData, action: @escaping () -> Void, @ViewBuilder content: @escaping () -> Content) {
+        self.data = data
         self.action = action
         self.content = content
         UITableViewHeaderFooterView.appearance().tintColor = UIColor.clear
@@ -51,31 +81,23 @@ public struct RefreshableList<Content: View>: View {
     public var body: some View {
         
         List{
-            Section(header: PullToRefreshView(showRefreshView: $showRefreshView, pullStatus: $pullStatus, showDone: $showDone))
-            {
+            Section(header: PullToRefreshView(data: self.data)) {
              content()
             }
         }
         .offset(y: -40)
         .onPreferenceChange(RefreshableKeyTypes.PrefKey.self) { values in
             guard let bounds = values.first?.bounds else { return }
-            self.pullStatus = CGFloat((bounds.origin.y - 106) / 80)
+            self.data.pullStatus = CGFloat((bounds.origin.y - 106) / 80)
             self.refresh(offset: bounds.origin.y)
         }
     }
     
     func refresh(offset: CGFloat) {
-        if(offset > 185 + 40 && self.showRefreshView == false) {
-            self.showRefreshView = true
+        if(offset > 185 + 40 && self.data.showRefreshView == false) {
+            self.data.showRefreshView = true
             DispatchQueue.main.async {
                 self.action()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    self.showRefreshView = false
-                    self.showDone = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        self.showDone = false
-                    }
-                }
             }
             
         }
@@ -102,23 +124,16 @@ struct Spinner: View {
 
 @available(iOS 13.0, *)
 struct RefreshView: View {
-    @Binding var isRefreshing:Bool
-    @Binding var status: CGFloat
-    @Binding var showDone: Bool
+    @ObservedObject var data: RefreshData
     var body: some View {
-        HStack{
+        HStack() {
             VStack(alignment: .center){
-                if (!isRefreshing) {
-                    Spinner(percentage: $status)
-                }else{
+                if (!data.showRefreshView) {
+                    Spinner(percentage: self.$data.pullStatus)
+                } else {
                     ActivityIndicator(isAnimating: .constant(true), style: .large)
                 }
-                if showDone {
-                    Text("Done").font(.caption)
-                } else {
-                    Text(isRefreshing ? "Loading" : "Pull to refresh").font(.caption)
-
-                }
+                Text(self.data.showText).font(.caption)
             }
         }
     }
@@ -126,12 +141,10 @@ struct RefreshView: View {
 
 @available(iOS 13.0, *)
 struct PullToRefreshView: View {
-    @Binding var showRefreshView: Bool
-    @Binding var pullStatus: CGFloat
-    @Binding var showDone: Bool
+    @ObservedObject var data: RefreshData
     var body: some View {
         GeometryReader{ geometry in
-            RefreshView(isRefreshing: self.$showRefreshView, status: self.$pullStatus, showDone: $showDone)
+            RefreshView(data: self.data)
                 .opacity(Double((geometry.frame(in: CoordinateSpace.global).origin.y - 106) / 80)).preference(key: RefreshableKeyTypes.PrefKey.self, value: [RefreshableKeyTypes.PrefData(bounds: geometry.frame(in: CoordinateSpace.global))])
                 .offset(y: -70)
         }
