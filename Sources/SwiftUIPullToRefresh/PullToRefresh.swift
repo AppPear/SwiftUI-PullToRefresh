@@ -37,6 +37,7 @@ public struct RefreshableNavigationView<Content: View>: View {
 public struct RefreshableList<Content: View>: View {
     @Binding var showRefreshView: Bool
     @Binding var pullStatus: CGFloat
+    @State var showDone: Bool = false
     let action: () -> Void
     let content: () -> Content
     init(showRefreshView: Binding<Bool>, pullStatus: Binding<CGFloat>, action: @escaping () -> Void, @ViewBuilder content: @escaping () -> Content) {
@@ -70,6 +71,7 @@ public struct RefreshableList<Content: View>: View {
                 self.action()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     self.showRefreshView = false
+                    self.showDone = true
                 }
             }
             
@@ -99,6 +101,7 @@ struct Spinner: View {
 struct RefreshView: View {
     @Binding var isRefreshing:Bool
     @Binding var status: CGFloat
+    @Binding var showDone: Bool
     var body: some View {
         HStack{
             VStack(alignment: .center){
@@ -107,7 +110,12 @@ struct RefreshView: View {
                 }else{
                     ActivityIndicator(isAnimating: .constant(true), style: .large)
                 }
-                Text(isRefreshing ? "Loading" : "Pull to refresh").font(.caption)
+                if showDone {
+                    Text("Done").font(.caption)
+                } else {
+                    Text(isRefreshing ? "Loading" : "Pull to refresh").font(.caption)
+
+                }
             }
         }
     }
