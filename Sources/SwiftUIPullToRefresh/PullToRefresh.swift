@@ -32,16 +32,6 @@ public struct RefreshableNavigationView<Content: View>: View {
     }
 }
 
-@available(iOS 13.0, *)
-struct FillAll: View {
-    let color: Color
-
-    var body: some View {
-        GeometryReader { proxy in
-            self.color.frame(width: proxy.size.width * 1.3).fixedSize()
-        }
-    }
-}
 
 @available(iOS 13.0, *)
 public struct RefreshableList<Content: View>: View {
