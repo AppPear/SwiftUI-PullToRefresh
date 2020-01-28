@@ -12,13 +12,12 @@ class RefreshData: ObservableObject {
     @Published var showText: String
     @Published var showRefreshView: Bool {
         didSet {
-            self.showText = "Loading 89"
+            self.showText = "Loading"
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 if self.showRefreshView {
                     self.showRefreshView = false
                     self.showDone = true
                     self.showText = "Done"
-                    print("loading")
                 }
             }
         }
@@ -26,11 +25,10 @@ class RefreshData: ObservableObject {
     @Published var pullStatus: CGFloat
     @Published var showDone: Bool {
         didSet {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                 if self.showDone {
                     self.showDone = false
                     self.showText = "Pull to refresh"
-                    print("done")
                 }
             }
         }
@@ -99,7 +97,6 @@ public struct RefreshableList<Content: View>: View {
     func refresh(offset: CGFloat) {
         if(offset > 185 + 40 && self.data.showRefreshView == false) {
             self.data.showRefreshView = true
-            print("ww")
             DispatchQueue.main.async {
                 self.action()
             }
@@ -134,7 +131,12 @@ struct RefreshView: View {
             VStack(alignment: .center){
                 if (!data.showRefreshView) {
                     Spinner(percentage: self.$data.pullStatus)
-                } else {
+                }
+                else if data.showDone {
+                    Image(systemName: "checkmark.circle")
+                        .foregroundColor(Color.green)
+                }
+                else {
                     ActivityIndicator(isAnimating: .constant(true), style: .large)
                 }
                 Text(self.data.showText).font(.caption)
