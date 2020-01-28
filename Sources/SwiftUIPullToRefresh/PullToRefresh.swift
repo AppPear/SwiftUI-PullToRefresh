@@ -51,7 +51,7 @@ public struct RefreshableList<Content: View>: View {
     public var body: some View {
         
         List{
-            Section(header: PullToRefreshView(showRefreshView: $showRefreshView, pullStatus: $pullStatus))
+            Section(header: PullToRefreshView(showRefreshView: $showRefreshView, pullStatus: $pullStatus, showDone: $showDone))
             {
              content()
             }
@@ -72,6 +72,9 @@ public struct RefreshableList<Content: View>: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     self.showRefreshView = false
                     self.showDone = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        self.showDone = false
+                    }
                 }
             }
             
@@ -127,7 +130,7 @@ struct PullToRefreshView: View {
     @Binding var pullStatus: CGFloat
     var body: some View {
         GeometryReader{ geometry in
-            RefreshView(isRefreshing: self.$showRefreshView, status: self.$pullStatus)
+            RefreshView(isRefreshing: self.$showRefreshView, status: self.$pullStatus, showDone: <#Binding<Bool>#>)
                 .opacity(Double((geometry.frame(in: CoordinateSpace.global).origin.y - 106) / 80)).preference(key: RefreshableKeyTypes.PrefKey.self, value: [RefreshableKeyTypes.PrefData(bounds: geometry.frame(in: CoordinateSpace.global))])
                 .offset(y: -70)
         }
