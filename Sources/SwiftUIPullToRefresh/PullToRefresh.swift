@@ -159,7 +159,7 @@ struct PullToRefreshView: View {
     }
 }
 
-@available(iOS 13.0, macOS 10.15)
+@available(iOS 13.0, macOS 10.15, *)
 struct ActivityIndicator: UIViewRepresentable {
 
     @Binding var isAnimating: Bool
@@ -192,7 +192,7 @@ struct RefreshableKeyTypes {
     }
 }
 
-@available(iOS 13.0, , macOS 10.15, *))
+@available(iOS 13.0, , macOS 10.15, *)
 struct Spinner_Previews: PreviewProvider {
     static var previews: some View {
         Spinner(percentage: .constant(1))
