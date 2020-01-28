@@ -8,6 +8,7 @@
 
 import SwiftUI
 
+@available(iOS 13.0, macOS 10.15, *)
 class RefreshData: ObservableObject {
     @Published var showText: String
     @Published var showRefreshView: Bool {
@@ -44,7 +45,7 @@ class RefreshData: ObservableObject {
 }
 
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 public struct RefreshableNavigationView<Content: View>: View {
     let content: () -> Content
     let action: () -> Void
@@ -67,7 +68,7 @@ public struct RefreshableNavigationView<Content: View>: View {
 }
 
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 public struct RefreshableList<Content: View>: View {
     @ObservedObject var data: RefreshData
     let action: () -> Void
@@ -105,7 +106,7 @@ public struct RefreshableList<Content: View>: View {
     }
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 struct Spinner: View {
     @Binding var percentage: CGFloat
     var body: some View {
@@ -123,7 +124,7 @@ struct Spinner: View {
     }
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 struct RefreshView: View {
     @ObservedObject var data: RefreshData
     var body: some View {
@@ -132,7 +133,7 @@ struct RefreshView: View {
                 if (!data.showRefreshView) {
                     Spinner(percentage: self.$data.pullStatus)
                 }
-                else if data.showDone {
+                else if data.showText == "done" {
                     Image(systemName: "checkmark.circle")
                         .foregroundColor(Color.green)
                 }
@@ -145,7 +146,7 @@ struct RefreshView: View {
     }
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 struct PullToRefreshView: View {
     @ObservedObject var data: RefreshData
     var body: some View {
@@ -158,7 +159,7 @@ struct PullToRefreshView: View {
     }
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15)
 struct ActivityIndicator: UIViewRepresentable {
 
     @Binding var isAnimating: Bool
@@ -173,7 +174,7 @@ struct ActivityIndicator: UIViewRepresentable {
     }
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 struct RefreshableKeyTypes {
     
     struct PrefData: Equatable {
@@ -191,7 +192,7 @@ struct RefreshableKeyTypes {
     }
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, , macOS 10.15, *))
 struct Spinner_Previews: PreviewProvider {
     static var previews: some View {
         Spinner(percentage: .constant(1))
