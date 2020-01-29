@@ -1,8 +1,9 @@
 //
-//  Spinner.swift
+//  pulltorefresh.swift
 //  PullToRefresh
 //
 //  Created by András Samu on 2019. 09. 15..
+//  Updated by Veit Progl on 29.01.20.
 //  Copyright © 2019. András Samu. All rights reserved.
 //
 
@@ -14,7 +15,7 @@ class RefreshData: ObservableObject {
     @Published var showRefreshView: Bool {
         didSet {
             self.showText = "Loading"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 if self.showRefreshView {
                     self.showRefreshView = false
                     self.showDone = true
@@ -35,7 +36,6 @@ class RefreshData: ObservableObject {
         }
     }
     
-    
     init() {
         self.showRefreshView = false
         self.pullStatus = 0
@@ -49,14 +49,22 @@ class RefreshData: ObservableObject {
 public struct RefreshableNavigationView<Content: View>: View {
     let content: () -> Content
     let action: () -> Void
-    @ObservedObject var data = RefreshData()
     private var title: String
+
+    @ObservedObject var data = RefreshData()
 
     public init(title:String, action: @escaping () -> Void ,@ViewBuilder content: @escaping () -> Content) {
         self.title = title
         self.action = action
         self.content = content
     }
+    
+//    public init<leadingItem: View>(title:String, action: @escaping () -> Void ,@ViewBuilder content: @escaping () -> Content, @ViewBuilder leadingItem: @escaping () -> leadingItem) {
+//        self.title = title
+//        self.action = action
+//        self.content = content
+//        self.leadingItem = leadingItem
+//    }
     
     public var body: some View {
         NavigationView{
@@ -67,12 +75,47 @@ public struct RefreshableNavigationView<Content: View>: View {
     }
 }
 
+@available(iOS 13.0, macOS 10.15, *)
+public struct RefreshableNavigationViewWithItem<Content: View, LeadingItem: View, TrailingItem: View>: View {
+    let content: () -> Content
+    let leadingItem: () -> LeadingItem
+    let trailingItem: () -> TrailingItem
+    let action: () -> Void
+    private var title: String
+
+    @ObservedObject var data = RefreshData()
+
+//    public init(title:String, action: @escaping () -> Void ,@ViewBuilder content: @escaping () -> Content) {
+//        self.title = title
+//        self.action = action
+//        self.content = content
+//    }
+    
+    public init(title:String, action: @escaping () -> Void , @ViewBuilder leadingItem: @escaping () -> LeadingItem, @ViewBuilder trailingItem: @escaping () -> TrailingItem, @ViewBuilder content: @escaping () -> Content) {
+        self.title = title
+        self.action = action
+        self.content = content
+        self.leadingItem = leadingItem
+        self.trailingItem = trailingItem
+    }
+    
+    public var body: some View {
+        NavigationView{
+            RefreshableList(data: data, action: self.action) {
+                self.content()
+            }.navigationBarTitle(title)
+             .navigationBarItems(leading: self.leadingItem(), trailing: self.trailingItem())
+        }
+    }
+}
 
 @available(iOS 13.0, macOS 10.15, *)
 public struct RefreshableList<Content: View>: View {
     @ObservedObject var data: RefreshData
+    
     let action: () -> Void
     let content: () -> Content
+    
     init(data: RefreshData, action: @escaping () -> Void, @ViewBuilder content: @escaping () -> Content) {
         self.data = data
         self.action = action
@@ -96,7 +139,7 @@ public struct RefreshableList<Content: View>: View {
     }
     
     func refresh(offset: CGFloat) {
-        if(offset > 185 + 40 && self.data.showRefreshView == false) {
+        if offset > 185 && !self.data.showRefreshView && !self.data.showDone {
             self.data.showRefreshView = true
             DispatchQueue.main.async {
                 self.action()
@@ -109,6 +152,7 @@ public struct RefreshableList<Content: View>: View {
 @available(iOS 13.0, macOS 10.15, *)
 struct Spinner: View {
     @Binding var percentage: CGFloat
+    
     var body: some View {
         GeometryReader{ geometry in
             ForEach(1...10, id: \.self) { i in
@@ -127,18 +171,17 @@ struct Spinner: View {
 @available(iOS 13.0, macOS 10.15, *)
 struct RefreshView: View {
     @ObservedObject var data: RefreshData
+    
     var body: some View {
         HStack() {
             VStack(alignment: .center){
-                if data.showText == "done" {
-                                   Image(systemName: "checkmark.circle")
-                                       .foregroundColor(Color.green)
-                               }
-                
-                if (!data.showRefreshView) {
+                if self.data.showDone {
+                    Image(systemName: "checkmark.circle")
+                        .foregroundColor(Color.green)
+                        .imageScale(.large)
+                } else if (!data.showRefreshView) {
                     Spinner(percentage: self.$data.pullStatus)
-                }
-                else {
+                } else {
                     ActivityIndicator(isAnimating: .constant(true), style: .large)
                 }
                 Text(self.data.showText).font(.caption)
