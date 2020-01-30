@@ -11,6 +11,7 @@ import SwiftUI
 
 @available(iOS 13.0, macOS 10.15, *)
 class RefreshData: ObservableObject {
+    @Binding var isDone: Bool
     @Published var showText: String
     @Published var showRefreshView: Bool {
         didSet {
@@ -36,7 +37,8 @@ class RefreshData: ObservableObject {
         }
     }
     
-    init() {
+    init(isDone:Bool) {
+        self.isDone = isDone
         self.showRefreshView = false
         self.pullStatus = 0
         self.showDone = false
@@ -50,13 +52,16 @@ public struct RefreshableNavigationView<Content: View>: View {
     let content: () -> Content
     let action: () -> Void
     private var title: String
+    @Binding var isDone: Bool
 
-    @ObservedObject var data = RefreshData()
+    @ObservedObject var data: RefreshData
 
-    public init(title:String, action: @escaping () -> Void ,@ViewBuilder content: @escaping () -> Content) {
+    public init(title:String, action: @escaping () -> Void,isDone: Bool ,@ViewBuilder content: @escaping () -> Content) {
         self.title = title
         self.action = action
         self.content = content
+        self.isDone = isDone
+        self.data = RefreshData(isDone: self.isDone)
     }
     
 //    public init<leadingItem: View>(title:String, action: @escaping () -> Void ,@ViewBuilder content: @escaping () -> Content, @ViewBuilder leadingItem: @escaping () -> leadingItem) {
@@ -82,8 +87,9 @@ public struct RefreshableNavigationViewWithItem<Content: View, LeadingItem: View
     let trailingItem: () -> TrailingItem
     let action: () -> Void
     private var title: String
+    @Binding var isDone: Bool
 
-    @ObservedObject var data = RefreshData()
+    @ObservedObject var data: RefreshData
 
 //    public init(title:String, action: @escaping () -> Void ,@ViewBuilder content: @escaping () -> Content) {
 //        self.title = title
@@ -91,12 +97,14 @@ public struct RefreshableNavigationViewWithItem<Content: View, LeadingItem: View
 //        self.content = content
 //    }
     
-    public init(title:String, action: @escaping () -> Void , @ViewBuilder leadingItem: @escaping () -> LeadingItem, @ViewBuilder trailingItem: @escaping () -> TrailingItem, @ViewBuilder content: @escaping () -> Content) {
+    public init(title:String, action: @escaping () -> Void, isDone: Bool ,@ViewBuilder leadingItem: @escaping () -> LeadingItem, @ViewBuilder trailingItem: @escaping () -> TrailingItem, @ViewBuilder content: @escaping () -> Content) {
         self.title = title
         self.action = action
         self.content = content
         self.leadingItem = leadingItem
         self.trailingItem = trailingItem
+        self.isDone = isDone
+        self.data = RefreshData(isDone: self.isDone)
     }
     
     public var body: some View {
