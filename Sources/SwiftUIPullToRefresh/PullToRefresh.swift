@@ -1,79 +1,166 @@
 //
-//  Spinner.swift
+//  pulltorefresh.swift
 //  PullToRefresh
 //
 //  Created by András Samu on 2019. 09. 15..
+//  Updated by Veit Progl on 29.01.20.
 //  Copyright © 2019. András Samu. All rights reserved.
 //
 
 import SwiftUI
 
+@available(iOS 13.0, macOS 10.15, *)
+class RefreshData: ObservableObject {
+    @Binding var isDone: Bool
+    
+    @Published var showText: String
+    @Published var showRefreshView: Bool {
+        didSet {
+            self.showText = "Loading"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                if self.showRefreshView {
+                    self.showRefreshView = false
+                    self.showDone = true
+                    self.showText = "Done"
+                }
+            }
+        }
+    }
+    @Published var pullStatus: CGFloat
+    @Published var showDone: Bool {
+        didSet {
+            if self.showDone && self.isDone {
+                self.showDone = false
+                self.showText = "Pull to refresh"
+            }
+            print(self.isDone)
+        }
+    }
+    
+    init(isDone:Binding<Bool>) {
+        self._isDone = isDone
+        self.showText = "Pull to refresh"
+        self.showRefreshView = false
+        self.pullStatus = 0
+        self.showDone = false
+    }
+}
+
+
+@available(iOS 13.0, macOS 10.15, *)
 public struct RefreshableNavigationView<Content: View>: View {
     let content: () -> Content
     let action: () -> Void
-    @State public var showRefreshView: Bool = false
-    @State public var pullStatus: CGFloat = 0
     private var title: String
+    @Binding var isDone: Bool
 
-    public init(title:String, action: @escaping () -> Void ,@ViewBuilder content: @escaping () -> Content) {
+    @ObservedObject var data: RefreshData
+
+    public init(title:String, action: @escaping () -> Void,isDone: Binding<Bool> ,@ViewBuilder content: @escaping () -> Content) {
         self.title = title
         self.action = action
         self.content = content
+        self._isDone = isDone
+        self.data = RefreshData(isDone: isDone)
     }
+    
+//    public init<leadingItem: View>(title:String, action: @escaping () -> Void ,@ViewBuilder content: @escaping () -> Content, @ViewBuilder leadingItem: @escaping () -> leadingItem) {
+//        self.title = title
+//        self.action = action
+//        self.content = content
+//        self.leadingItem = leadingItem
+//    }
     
     public var body: some View {
         NavigationView{
-            RefreshableList(showRefreshView: $showRefreshView, pullStatus: $pullStatus, action: self.action) {
+            RefreshableList(data: data, action: self.action) {
                 self.content()
             }.navigationBarTitle(title)
-        }
-        .offset(x: 0, y: self.showRefreshView ? 34 : 0)
-        .onAppear{
-            UITableView.appearance().separatorColor = .clear
         }
     }
 }
 
-public struct RefreshableList<Content: View>: View {
-    @Binding var showRefreshView: Bool
-    @Binding var pullStatus: CGFloat
-    let action: () -> Void
+@available(iOS 13.0, macOS 10.15, *)
+public struct RefreshableNavigationViewWithItem<Content: View, LeadingItem: View, TrailingItem: View>: View {
     let content: () -> Content
-    init(showRefreshView: Binding<Bool>, pullStatus: Binding<CGFloat>, action: @escaping () -> Void, @ViewBuilder content: @escaping () -> Content) {
-        self._showRefreshView = showRefreshView
-        self._pullStatus = pullStatus
+    let leadingItem: () -> LeadingItem
+    let trailingItem: () -> TrailingItem
+    let action: () -> Void
+    private var title: String
+    @Binding var isDone: Bool
+
+    @ObservedObject var data: RefreshData
+
+//    public init(title:String, action: @escaping () -> Void ,@ViewBuilder content: @escaping () -> Content) {
+//        self.title = title
+//        self.action = action
+//        self.content = content
+//    }
+    
+    public init(title:String, action: @escaping () -> Void, isDone: Binding<Bool> ,@ViewBuilder leadingItem: @escaping () -> LeadingItem, @ViewBuilder trailingItem: @escaping () -> TrailingItem, @ViewBuilder content: @escaping () -> Content) {
+        self.title = title
         self.action = action
         self.content = content
+        self.leadingItem = leadingItem
+        self.trailingItem = trailingItem
+        self._isDone = isDone
+        self.data = RefreshData(isDone: isDone)
     }
     
     public var body: some View {
-        List{
-            PullToRefreshView(showRefreshView: $showRefreshView, pullStatus: $pullStatus)
-            content()
+        NavigationView{
+            RefreshableList(data: data, action: self.action) {
+                self.content()
+            }.navigationBarTitle(title)
+             .navigationBarItems(leading: self.leadingItem(), trailing: self.trailingItem())
         }
+    }
+}
+
+@available(iOS 13.0, macOS 10.15, *)
+public struct RefreshableList<Content: View>: View {
+    @ObservedObject var data: RefreshData
+    
+    let action: () -> Void
+    let content: () -> Content
+    
+    init(data: RefreshData, action: @escaping () -> Void, @ViewBuilder content: @escaping () -> Content) {
+        self.data = data
+        self.action = action
+        self.content = content
+        UITableViewHeaderFooterView.appearance().tintColor = UIColor.clear
+    }
+    
+    public var body: some View {
+        
+        List{
+            Section(header: PullToRefreshView(data: self.data)) {
+             content()
+            }
+        }
+        .offset(y: -40)
         .onPreferenceChange(RefreshableKeyTypes.PrefKey.self) { values in
             guard let bounds = values.first?.bounds else { return }
-            self.pullStatus = CGFloat((bounds.origin.y - 106) / 80)
+            self.data.pullStatus = CGFloat((bounds.origin.y - 106) / 80)
             self.refresh(offset: bounds.origin.y)
-        }.offset(x: 0, y: -40)
+        }
     }
     
     func refresh(offset: CGFloat) {
-        if(offset > 185 && self.showRefreshView == false) {
-            self.showRefreshView = true
+        if offset > 185 && !self.data.showRefreshView && !self.data.showDone {
+            self.data.showRefreshView = true
             DispatchQueue.main.async {
                 self.action()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    self.showRefreshView = false
-                }
             }
             
         }
     }
 }
 
+@available(iOS 13.0, macOS 10.15, *)
 struct Spinner: View {
     @Binding var percentage: CGFloat
+    
     var body: some View {
         GeometryReader{ geometry in
             ForEach(1...10, id: \.self) { i in
@@ -89,37 +176,42 @@ struct Spinner: View {
     }
 }
 
+@available(iOS 13.0, macOS 10.15, *)
 struct RefreshView: View {
-    @Binding var isRefreshing:Bool
-    @Binding var status: CGFloat
+    @ObservedObject var data: RefreshData
+    
     var body: some View {
-        HStack{
-            Spacer()
+        HStack() {
             VStack(alignment: .center){
-                if (!isRefreshing) {
-                    Spinner(percentage: $status)
-                }else{
+                if self.data.showDone {
+                    Image(systemName: "checkmark.circle")
+                        .foregroundColor(Color.green)
+                        .imageScale(.large)
+                } else if (!data.showRefreshView) {
+                    Spinner(percentage: self.$data.pullStatus)
+                } else {
                     ActivityIndicator(isAnimating: .constant(true), style: .large)
                 }
-                Text(isRefreshing ? "Loading" : "Pull to refresh").font(.caption)
+                Text(self.data.showText).font(.caption)
             }
-            Spacer()
         }
     }
 }
 
+@available(iOS 13.0, macOS 10.15, *)
 struct PullToRefreshView: View {
-    @Binding var showRefreshView: Bool
-    @Binding var pullStatus: CGFloat
+    @ObservedObject var data: RefreshData
     var body: some View {
         GeometryReader{ geometry in
-            RefreshView(isRefreshing: self.$showRefreshView, status: self.$pullStatus)
+            RefreshView(data: self.data)
                 .opacity(Double((geometry.frame(in: CoordinateSpace.global).origin.y - 106) / 80)).preference(key: RefreshableKeyTypes.PrefKey.self, value: [RefreshableKeyTypes.PrefData(bounds: geometry.frame(in: CoordinateSpace.global))])
-                .offset(x: 0, y: -90)
+                .offset(y: -70)
         }
+        .offset(y: -20)
     }
 }
 
+@available(iOS 13.0, macOS 10.15, *)
 struct ActivityIndicator: UIViewRepresentable {
 
     @Binding var isAnimating: Bool
@@ -134,6 +226,7 @@ struct ActivityIndicator: UIViewRepresentable {
     }
 }
 
+@available(iOS 13.0, macOS 10.15, *)
 struct RefreshableKeyTypes {
     
     struct PrefData: Equatable {
@@ -151,6 +244,7 @@ struct RefreshableKeyTypes {
     }
 }
 
+@available(iOS 13.0, macOS 10.15, *)
 struct Spinner_Previews: PreviewProvider {
     static var previews: some View {
         Spinner(percentage: .constant(1))
