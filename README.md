@@ -19,6 +19,8 @@ You need to add `RefreshableNavigationView(title: String, action: () -> Void, co
 Example: 
 
 ```swift
+import SwiftUIPullToRefresh
+
 struct ContentView: View {
     @State var numbers:[Int] = [23,45,76,54,76,3465,24,423]
     
